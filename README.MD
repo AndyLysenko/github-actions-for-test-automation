@@ -1,6 +1,6 @@
 # About
 
-[<img align="right" width="200px" src="https://miro.medium.com/v2/resize:fit:1400/0*nPl_823wvgb6O2Hc.png" />](https://docs.github.com/en/actions)
+[<img align="right" width="300px" src="https://miro.medium.com/v2/resize:fit:1400/0*nPl_823wvgb6O2Hc.png" />](https://docs.github.com/en/actions)
 
 This repository contains composite GitHub Actions regarding test automation and real life examples of GitHub workflows.
 
