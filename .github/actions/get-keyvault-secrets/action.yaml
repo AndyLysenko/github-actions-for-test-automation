@@ -1,0 +1,41 @@
+name: Get KeyVault secrets
+description: Get secrets for Azure KeyVault
+inputs:
+  keyvault-name:
+    description: Name of Azure keyvault
+    required: true
+  client-id:
+    description: Azure client ID
+    required: true
+  tenant-id:
+    description: Azure tenant ID
+    required: true
+  subscription-id:
+    description: Azure subscription ID
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: 🛂 AzureCLI Login
+      uses: azure/login@v1
+      with:
+        client-id: ${{ inputs.client-id }}
+        tenant-id: ${{ inputs.tenant-id }}
+        subscription-id: ${{ inputs.subscription-id }}
+
+    - name: Get secrets
+      shell: bash
+      run: |
+        declare -A secrets_map
+
+        secrets_map+=(
+            ["AppSettings__ConnectionDetails__Secret1"]=ado-keyvault-secret1
+            ["AppSettings__ConnectionDetails__Secret2"]=ado-keyvault-secret2
+            ["AppSettings__ConnectionDetails__Secret3"]=ado-keyvault-secret3
+        )
+
+        for key in ${!secrets_map[@]}; do
+            value=$(az keyvault secret show --name ${secrets_map[${key}]} --vault-name ${{ inputs.keyvault-name }} --query value --output tsv)
+            echo "$key=$value" >> $GITHUB_ENV
+        done

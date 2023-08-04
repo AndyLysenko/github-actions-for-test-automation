@@ -1,0 +1,40 @@
+name: "_template: run tests" # no possibility to hide or mark template from actions page. Follow https://github.com/orgs/community/discussions/12025
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        description: Environment to test on
+        required: true
+      test-filter:
+        type: string
+        description: Test filter
+        required: true
+      report-log-level:
+        type: string
+        description: Html report log level
+        required: true
+
+env:
+  ReportSettings__LogLevel: ${{ inputs.report-log-level }}
+
+jobs:
+  run-integration-tests:
+    runs-on: ubuntu-latest
+    environment: default
+    steps:
+      - name: Get secrets from Azure keyvault
+        uses: AndyLysenko/api-integration-tests/.github/actions/get-keyvault-secrets@main
+        with:
+          keyvault-name: ${{ inputs.environment == 'qa' && 'aks-qa' || inputs.environment == 'staging' && 'aks-staging' || '' }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID_platform_a_QA }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ inputs.environment == 'qa' && secrets.AZURE_SUBSCRIPTION_ID_TEST || inputs.environment == 'staging' && secrets.AZURE_SUBSCRIPTION_ID_PROD || '' }}
+        timeout-minutes: 3
+      - name: Run tests
+        uses: AndyLysenko/api-integration-tests/.github/actions/run-tests@main
+        with:
+          environment: ${{ inputs.environment }}
+          test-filter: "${{ inputs.test-filter }}"
+        timeout-minutes: 90

@@ -1,0 +1,54 @@
+name: Wait for deployment
+description: Wait for a project be deployed to an environment
+inputs:
+  project-name:
+    description: Name of the project to be deployed
+    required: true
+  docker-image: 
+    description: Image to be deployed
+    required: true
+  environment: 
+    description: Environment to test on
+    required: true
+  argocd-test-access-token:
+    description: JWT to access ArgoCD test instance
+    required: true
+  argocd-prod-access-token:
+    description: JWT to access ArgoCD prod instance
+    required: true
+  deploy-wait-timeout:
+    description: Time to wait for image to be deployed (sec)
+    required: true
+    type: number
+  deploy-wait-polling-interval:
+    description: Polling interval for deployment check (sec)
+    required: true
+    type: number
+
+runs:
+  using: composite
+  steps:
+    - name: Set env vars for ${{ inputs.environment }}
+      shell: bash
+      env:
+        ARGOCD_TOKEN: ${{ inputs.argocd-test-access-token }}
+      run: |
+        echo "ARGOCD_SERVER=argocd.test.andylysenko.cloud" >> $GITHUB_ENV
+        echo "ARGOCD_ACCESS_TOKEN=${{ env.ARGOCD_TOKEN }}" >> $GITHUB_ENV
+      if: ${{ contains(fromJSON('["dev", "hw", "em"]'), inputs.environment) }}
+    - name: Set env vars for ${{ inputs.environment }}
+      shell: bash
+      env:
+        ARGOCD_TOKEN: ${{ inputs.argocd-prod-access-token }}
+      run: |
+        echo "ARGOCD_SERVER=argocd.andylysenko.cloud" >> $GITHUB_ENV
+        echo "ARGOCD_ACCESS_TOKEN=${{ env.ARGOCD_TOKEN }}" >> $GITHUB_ENV
+      if: ${{ contains(fromJSON('["staging", "prod"]'), inputs.environment) }}
+
+    - name: 🛂 Check deployment status
+      shell: pwsh
+      run: |
+        Import-Module $env:GITHUB_ACTION_PATH/scripts/ArgoCD/ArgoCD.psd1 -Force
+        Wait-ForDeployment -ServerUrl ${{ env.ARGOCD_SERVER }} -ServiceName ${{ inputs.project-name }} `
+          -Environment ${{ inputs.environment }} -DockerImage ${{ inputs.docker-image }} -JWT ${{ env.ARGOCD_ACCESS_TOKEN }} `
+          -Timeout ${{ inputs.deploy-wait-timeout }} -PollingIntervalSec ${{ inputs.deploy-wait-polling-interval }}

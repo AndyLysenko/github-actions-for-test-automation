@@ -1,0 +1,54 @@
+name: Test deployed service
+run-name: Test [${{inputs.project-name}}] on [${{inputs.environment}}] image [${{inputs.docker-image-tag}}]
+
+on:
+  workflow_dispatch:
+    inputs:
+      project-name:
+        description: Project (service) to be deployed for testing
+        required: true
+      docker-image-tag:
+        description: Image to be deployed for testing
+        required: true
+      environment:
+        description: Environment the project to be deployed to
+        required: true
+        type: choice
+        options:
+          - qa
+          - staging
+
+jobs:
+  run-tests:
+    secrets: inherit
+    uses: AndyLysenko/api-integration-tests/.github/workflows/run-tests-tmpl.yaml@main
+    with:
+      environment: ${{ inputs.environment }}
+      test-filter: Priority=Critical & Service~${{ inputs.project-name }}
+      report-log-level: Information
+
+    permissions:
+      id-token: write
+      contents: write
+      actions: write
+      checks: write
+      pull-requests: read
+
+  send-opsgenie-alert:
+    runs-on: ubuntu-latest
+    needs: run-tests
+    steps:
+      - name: Create alert in OpsGenie
+        uses: AndyLysenko/templates/.github/actions/create-opsgenie-alert@v1
+        with:
+          message: "[${{needs.run-tests.result}}] Tests [${{inputs.project-name}}] on [${{inputs.environment}}] image [${{inputs.docker-image-tag}}]"
+          alias: ${{github.run_id}}
+          description: 'Test run url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+          tags: '[\"ta\", \"${{inputs.project-name}}\"]'
+          details: '{\"run-status\": \"${{needs.run-tests.result}}\", \"environment\": \"${{inputs.environment}}\", \"github_run_id\": \"${{github.run_id}}\", \"service\": \"${{inputs.project-name}}\", \"github_repository\": \"${{github.repository}}\", \"github_ref\": \"${{github.ref}}\", \"github_workflow_ref\": \"${{github.workflow_ref}}\", \"github_event_name\": \"${{github.event_name}}\", \"github_actor\": \"${{github.actor}}\", \"github_sha\": \"${{github.sha}}\" }'
+          entity: github-actions
+          source: ${{ github.server_url }}
+          priority: ${{needs.run-tests.result == 'success' && 'P5' || 'P3'}}
+          user: ${{github.actor}}
+          opsgenie-api-key: ${{secrets.OPSGENIE_GITHUB_QA_API_KEY}}
+    if: success() || failure()

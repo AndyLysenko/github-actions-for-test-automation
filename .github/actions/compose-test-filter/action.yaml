@@ -1,0 +1,35 @@
+name: Compose test filter
+description: Compose overall test filter from multiple trait filters
+inputs:
+    hardware-platform:
+      description: Hardware platform
+      required: true
+    priority:
+      description: Priority
+      required: true
+    test-id:
+      description: Test Id
+      required: false
+      default: ''
+    service:
+      description: Service
+      required: false
+
+outputs:
+  test-filter:
+    description: Overall test filter composed from multiple input trait filters
+    value: ${{ steps.compose-test-filter.outputs.TEST_FILTER }}
+  
+runs:
+  using: composite
+  steps:
+    - name: Compose overall test filter
+      id: compose-test-filter
+      shell: bash
+      env:
+        PRIORITY_FILTER: ${{ inputs.priority == 'All' && '.' || format('Priority={0}',  inputs.priority) }}
+        HARDWARE_PLATFORM_FILTER: ${{ inputs.hardware-platform == 'All' && '.' || format('Platform={0}',  inputs.hardware-platform) }}
+        TEST_ID_FILTER: ${{ inputs.test-id == '' && '.' || format('TestId~{0}',  inputs.test-id) }}
+        SERVICE_FILTER: ${{ inputs.service == 'All' && '.' || format('Service~{0}',  inputs.service) }}
+      run:
+        echo "TEST_FILTER=$PRIORITY_FILTER & $HARDWARE_PLATFORM_FILTER & $TEST_ID_FILTER & $SERVICE_FILTER" >> $GITHUB_OUTPUT

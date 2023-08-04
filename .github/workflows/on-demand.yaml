@@ -1,0 +1,82 @@
+name: Run tests on demand
+run-name: Run tests [${{ github.ref_name}}] on [${{ inputs.environment }}] by @${{ github.actor }}
+
+on:
+  workflow_dispaplatform_bh:
+    inputs:
+      environment:
+        description: Environment to test on
+        type: choice
+        default: em
+        options:
+          - em
+          - staging
+      hardware-platform:
+        description: Hardware platform
+        type: choice
+        default: All
+        options:
+          - platform_a
+          - platform_b
+          - All
+      priority:
+        description: Priority
+        type: choice
+        default: All
+        options:
+          - Critical
+          - Normal
+          - All
+      service:
+        description: Service
+        type: choice
+        default: All
+        options:
+          - service01
+          - service02
+          - service03
+          - All
+      test-id:
+        description: Test Id
+        required: false
+        type: string
+        default: ""
+      report-log-level:
+        description: Html report log level
+        type: choice
+        default: Information
+        options:
+          - Validation
+          - Information
+          - Verbose
+
+permissions:
+  id-token: write
+  contents: write
+  actions: write
+  checks: write
+  pull-requests: read
+
+jobs:
+  compose-test-filter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compose overall test filter
+        id: compose-test-filter
+        uses: AndyLysenko/api-integration-tests/.github/actions/compose-test-filter@main
+        with:
+          hardware-platform: ${{ inputs.hardware-platform }}
+          priority: ${{ inputs.priority }}
+          test-id: ${{ inputs.test-id }}
+          service: ${{ inputs.service }}
+    outputs:
+      test-filter: ${{ steps.compose-test-filter.outputs.test-filter}}
+
+  run-tests:
+    needs: compose-test-filter
+    secrets: inherit
+    uses: AndyLysenko/api-integration-tests/.github/workflows/run-tests-tmpl.yaml@main
+    with:
+      environment: ${{ inputs.environment }}
+      test-filter: ${{ needs.compose-test-filter.outputs.test-filter}}
+      report-log-level: ${{ inputs.report-log-level }}

@@ -1,0 +1,35 @@
+name: Trigger integration tests
+description: Trigger integration tests running in separate workflow
+inputs:
+  project-name:
+    description: Name of the project targeted for testing
+    required: true
+  docker-image-tag:
+    description: Image to be deployed for testing
+    required: true
+  environment:
+    description: Environment to test on
+    required: true
+  test-repository-credentials-token:
+    description: App credentials token used to trigger integration tests workflow
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Trigger test workflow
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ inputs.test-repository-credentials-token }}
+        script: |
+          github.rest.actions.createWorkflowDispatch({
+            owner: 'AndyLysenko',
+            repo: 'api-integration-tests',
+            workflow_id: 'test-deployment.yaml',
+            ref: 'main',
+            inputs: {
+              'project-name': '${{ inputs.project-name }}',
+              'docker-image-tag': '${{ inputs.docker-image-tag }}',
+              'environment': '${{ inputs.environment }}',
+            }
+          })

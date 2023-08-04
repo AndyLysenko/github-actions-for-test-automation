@@ -1,0 +1,76 @@
+name: "Nightly: all platform_a tests on qa"
+run-name: Run [all] [platform_a] tests [${{ github.ref_name}}] on [qa] nightly
+
+on:
+  schedule:
+    - cron: "0 4 * * 1-5"
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to test on
+        type: choice
+        default: qa
+        options:
+          - qa
+      hardware-platform:
+        description: Hardware platform
+        type: choice
+        default: platform_a
+        options:
+          - platform_a
+      priority:
+        description: Priority
+        type: choice
+        default: All
+        options:
+          - Critical
+          - Normal
+          - All
+      test-id:
+        description: Test Id
+        required: false
+        type: string
+        default: ""
+      report-log-level:
+        description: Html report log level
+        type: choice
+        default: Information
+        options:
+          - Validation
+          - Information
+          - Verbose
+
+permissions:
+  id-token: write
+  contents: write
+  actions: write
+  checks: write
+  pull-requests: read
+
+jobs:
+  run-tests:
+    secrets: inherit
+    uses: AndyLysenko/api-integration-tests/.github/workflows/run-tests-tmpl.yaml@main
+    with:
+      environment: qa
+      test-filter: ${{ inputs.test-id && format('Platform=platform_a & TestId~{0}', inputs.test-id) || 'Platform=platform_a'}}
+      report-log-level: ${{ inputs.report-log-level || 'Information' }}
+  send-opsgenie-alert:
+    runs-on: ubuntu-latest
+    needs: run-tests
+    steps:
+      - name: Create alert in OpsGenie
+        uses: AndyLysenko/templates/.github/actions/create-opsgenie-alert@v1
+        with:
+          message: "[${{needs.run-tests.result}}] Run [all] [platform_a] tests [${{ github.ref_name}}] on [qa] nightly"
+          alias: ${{github.run_id}}
+          description: "Test run url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          tags: '[\"ta\", \"nightly-run-platform_a\"]'
+          details: '{\"run-status\": \"${{needs.run-tests.result}}\", \"environment\": \"${{inputs.environment}}\", \"github_run_id\": \"${{github.run_id}}\", \"github_repository\": \"${{github.repository}}\", \"github_ref\": \"${{github.ref}}\", \"github_workflow_ref\": \"${{github.workflow_ref}}\", \"github_event_name\": \"${{github.event_name}}\", \"github_actor\": \"${{github.actor}}\", \"github_sha\": \"${{github.sha}}\" }'
+          entity: github-actions
+          source: ${{ github.server_url }}
+          priority: ${{needs.run-tests.result == 'success' && 'P5' || 'P3'}}
+          user: ${{github.actor}}
+          opsgenie-api-key: ${{secrets.OPSGENIE_GITHUB_QA_API_KEY}}
+    if: success() || failure()

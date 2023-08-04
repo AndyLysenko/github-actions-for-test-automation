@@ -1,0 +1,53 @@
+name: Run integration and e2e tests
+description: Run API integration and e2e tests for specifis environment
+inputs:
+  test-project:
+    description: Relative path of the project containing tests
+    default: ./tests/AndyLysenko.ApiTests/AndyLysenko.ApiTests.csproj
+  environment:
+    description: Environment to test on
+    required: true
+  test-filter:
+    description: "Filter parameter in format supported by 'dotnet test --filter <>'"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+
+    - name: 📒 Add NuGet source
+      run: dotnet nuget add source https://<private_nuget_feed>/nuget/v3/index.json --name Feed1 --username feed-user --password ${{ secrets.FEED_ACCESSTOKEN_PAT }} --store-password-in-clear-text
+
+    - name: 🔨 Build solution
+      shell: bash
+      run: dotnet build ${{ inputs.test-project }} -c ${{ inputs.environment }} -maxcpucount
+
+    - name: 🧪 Run tests
+      shell: bash
+      run: |
+        dotnet test ${{ inputs.test-project }} --no-build --logger "trx;LogFileName=${{ github.run_id }}-test-results.trx" \
+        --filter "${{ inputs.test-filter }}" -c ${{ inputs.environment }} -- RunConfiguration.TreatNoTestplatform_aError=true
+
+    - name: 📊 Publish Test Results
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      with:
+        files: |
+          **/${{ github.run_id }}-test-results.trx
+        check_name: Test Results for Run ${{ github.run_id }}
+      if: success() || failure()
+
+    - name: Copy HTML Test Report
+      shell: bash
+      run: |
+        mkdir ${{ runner.temp }}/reports/
+        find . -name "*_Report.html" -exec cp '{}' ${{ runner.temp }}/reports/ \;
+      if: success() || failure()
+
+    - name: 📊 Publish HTML Test Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: html-report-${{ github.run_id }}
+        path: ${{ runner.temp }}/reports/
+      if: always()
