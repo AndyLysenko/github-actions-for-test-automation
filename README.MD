@@ -13,7 +13,7 @@ Composite actions folder:
 - `run-tests` - run tests with *dotnet test*
 - `trigger-tests-after-deployment` - trigger test workflow from another repository
 - `create-opsgenie-alert` - create custom alert in [OpsGenie](https://www.atlassian.com/software/opsgenie)
-- `wait-for-deployment` - 
+- `wait-for-deployment` - composite action to wait for [Argo CD](https://argo-cd.readthedocs.io/en/stable/) deployment to finish
 
 ## Workflows
 Reusable workflows:
