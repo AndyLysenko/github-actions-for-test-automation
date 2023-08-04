@@ -38,6 +38,6 @@ All workflows more or less go through the same flow:
 10. Sends and alert to [OpsGenie](https://www.atlassian.com/software/opsgenie)
 
 # Information
-More information about [GitHub Actions ](https://docs.github.com/en/actions).
-More information about [OpsGenie alerts](https://www.atlassian.com/software/opsgenie).
+More information about [GitHub Actions ](https://docs.github.com/en/actions). <br />
+More information about [OpsGenie alerts](https://www.atlassian.com/software/opsgenie). <br />
 More information about [Argo CD](https://argo-cd.readthedocs.io/en/stable/).
