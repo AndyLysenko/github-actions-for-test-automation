@@ -2,7 +2,7 @@ name: Run tests on demand
 run-name: Run tests [${{ github.ref_name}}] on [${{ inputs.environment }}] by @${{ github.actor }}
 
 on:
-  workflow_dispaplatform_bh:
+  workflow_dispatch:
     inputs:
       environment:
         description: Environment to test on

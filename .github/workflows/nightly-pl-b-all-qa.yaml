@@ -3,10 +3,11 @@ name: "Nightly: all platform_b tests on em"
 run-name: Run [all] [platform_b] tests [${{ github.ref_name}}] on [em] nightly
 
 on:
-  schedule:
-    - cron: "0 5 * * 1-5"
+  # disabled on purpose
+  # schedule:
+  #   - cron: "0 5 * * 1-5"
 
-  workflow_dispaplatform_bh:
+  workflow_dispatch:
     inputs:
       environment:
         description: Environment to test on
