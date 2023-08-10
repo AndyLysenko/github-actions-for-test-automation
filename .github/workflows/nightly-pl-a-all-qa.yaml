@@ -2,8 +2,9 @@ name: "Nightly: all platform_a tests on qa"
 run-name: Run [all] [platform_a] tests [${{ github.ref_name}}] on [qa] nightly
 
 on:
-  schedule:
-    - cron: "0 4 * * 1-5"
+  # disabled on purpose
+  # schedule:
+  #   - cron: "0 4 * * 1-5"
 
   workflow_dispatch:
     inputs:
